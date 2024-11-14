@@ -296,7 +296,7 @@ def perform_gwas_helper(
             covars[called_samples_filter, 1:], #avoid regressing on the genotype 
             missing='drop',
         ).fit().resid
-        x= covars[called_samples_filter, 0].astype(float).to_numpy()
+        x= covars[called_samples_filter, 0].astype(float)
         # Step 3: Remove any rows where x or y_resid has NaN
         valid_filter = ~np.isnan(x) & ~np.isnan(y_resid)
         x_clean = x[valid_filter]
