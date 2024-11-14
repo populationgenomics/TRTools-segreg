@@ -13,6 +13,8 @@ import scipy.stats
 import statsmodels.api as sm
 from statsmodels.regression.linear_model import OLS
 import statsmodels.stats.weightstats
+import piecewise_regression
+import re
 
 from . import load_and_filter_genotypes
 import trtools
@@ -132,7 +134,7 @@ def perform_gwas_helper(
         "chrom\tpos\talleles\tn_samples_tested\tlocus_filtered\tp_{}\tcoeff_{}\t".format(phenotype_name, phenotype_name)
     )
     #if binary != 'logistic':
-    outfile.write('se_{}\tregression_R^2\t'.format(phenotype_name))
+    outfile.write('se_{}\tregression_R^2\tpval_pw\t'.format(phenotype_name))
     outfile.flush()
    
     print('{} samples in the VCF'.format(len(all_samples)), flush=True)
@@ -288,7 +290,25 @@ def perform_gwas_helper(
         coef = reg_result.params[0]
         se = reg_result.bse[0]
         rsquared = reg_result.rsquared
-        outfile.write(("{:." + str(pval_precision) + "e}\t{}\t{}\t{}\t").format(pval, coef/std*pheno_std, se/std*pheno_std, rsquared))
+
+        #segmental regression 
+        y_resid = OLS(outcome[called_samples_filter],
+            covars[called_samples_filter, 1:], #avoid regressing on the genotype 
+            missing='drop',
+        ).fit().resid
+        y_resid = y_resid.to_numpy()
+        x= covars[called_samples_filter, 0].astype(float).to_numpy()
+        # Step 3: Remove any rows where x or y_resid has NaN
+        valid_filter = ~np.isnan(x) & ~np.isnan(y_resid)
+        x_clean = x[valid_filter]
+        y_resid_clean = y_resid[valid_filter]
+
+        # Step 4: Run piecewise regression
+        pw_fit = piecewise_regression.Fit(x_clean, y_resid_clean, n_breakpoints=1)
+        pval_pw = float(re.search(r"Davies test.*p=([0-9.e-]+)", pw_fit.summary()).group(1))
+
+
+        outfile.write(("{:." + str(pval_precision) + "e}\t{}\t{}\t{}\t").format(pval, coef/std*pheno_std, se/std*pheno_std, rsquared, pval_pw))
 #        else:
 #            model = sm.GLM(
 #                outcome,
