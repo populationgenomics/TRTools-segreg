@@ -304,7 +304,14 @@ def perform_gwas_helper(
 
         # Step 4: Run piecewise regression
         pw_fit = piecewise_regression.Fit(x_clean, y_resid_clean, n_breakpoints=1)
-        pval_pw = float(re.search(r"Davies test.*p=([0-9.e-]+)", pw_fit.summary()).group(1))
+        try:
+            pval_pw = float(re.search(r"Davies test.*p=([0-9.e-]+)", pw_fit.summary()).group(1))
+        except: 
+            pw_fit = piecewise_regression.Fit(x_clean, y_resid_clean, n_breakpoints=2)
+            try: 
+                pval_pw = float(re.search(r"Davies test.*p=([0-9.e-]+)", pw_fit.summary()).group(1))
+            except: 
+                pval_pw = 'nan'
 
 
         outfile.write(("{:." + str(pval_precision) + "e}\t{}\t{}\t{}\t").format(pval, coef/std*pheno_std, se/std*pheno_std, rsquared, pval_pw))
