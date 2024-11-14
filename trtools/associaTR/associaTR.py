@@ -314,7 +314,7 @@ def perform_gwas_helper(
                 pval_pw = 'nan'
 
 
-        outfile.write(("{:." + str(pval_precision) + "e}\t{}\t{}\t{}\t").format(pval, coef/std*pheno_std, se/std*pheno_std, rsquared, pval_pw))
+        outfile.write(("{:." + str(pval_precision) + "e}\t{}\t{}\t{}\t{}\t").format(pval, coef/std*pheno_std, se/std*pheno_std, rsquared, pval_pw))
 #        else:
 #            model = sm.GLM(
 #                outcome,
